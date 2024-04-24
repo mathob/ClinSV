@@ -83,7 +83,7 @@ project_folder=$PWD/test_run
 docker run -v $refdata_path:/app/ref-data \
 -v $project_folder:/app/project_folder  \
 -v $input_path:/app/input  \
---entrypoint "perl" mrbradley2/clinsv:v1.0.1 /app/clinsv/bin/clinsv \
+--entrypoint "perl" mrbradley2/clinsv:v1.0 /app/clinsv/bin/clinsv \
 -r all \
 -p /app/project_folder/ \
 -i "/app/input/*.bam" \
