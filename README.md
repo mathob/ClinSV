@@ -123,7 +123,9 @@ ClinSV version 1.1.0 is currently under development and aims to make major usabi
  - Support for hg19 style chromosome names for v37 or v38 reference genomes
  - XML bug fixes to correct publicly hosted resource files
 
-Its development is kept track in this [issue](https://github.com/KCCG/ClinSV/issues/27#issue-1248950365) with most usability improvements implemented, however still has some bugs. Its docker container can be pulled from: `docker pull containerregistrypubliccb.azurecr.io/clinsv:v1.1-dev`.
+Its development is kept track in this [issue](https://github.com/KCCG/ClinSV/issues/27#issue-1248950365) with most usability improvements implemented, however its is still buggy. Its docker container can be pulled from: 
+
+`docker pull containerregistrypubliccb.azurecr.io/clinsv:v1.1-dev`.
 
 Usage information for new features is currently shown in linked enhancement issues in the main development issues described previously.
 
