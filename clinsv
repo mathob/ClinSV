@@ -461,7 +461,7 @@ sub lumpy {
 				print OUT "readLArr[$outStemSC]=\$(samtools view  $projectDir/alignments/$cSample/$cSample.bam ".$chrPf."1:1000000-1100000 | cut -f 10 | awk '{ print length}' | sort -rn | awk '(NR==1){print}' )\n";
 				
 				# Test to make sure readLArr[$outStemSC] is not empty as we the bam could be aligned to a different naming convention. If so try the hg19 naming convention
-				print OUT "[ -z \"$readLArr[$outStemSC]\" ] && readLArr[$outStemSC]=\$(samtools view  $projectDir/alignments/$cSample/$cSample.bam chr1:1000000-1100000 | cut -f 10 | awk '{ print length}' | sort -rn | awk '(NR==1){print}' )\n";
+				# print OUT "[ -z \"$readLArr[$outStemSC]\" ] && readLArr[$outStemSC]=\$(samtools view  $projectDir/alignments/$cSample/$cSample.bam chr1:1000000-1100000 | cut -f 10 | awk '{ print length}' | sort -rn | awk '(NR==1){print}' )\n";
 				
 				print OUT "read -r mean stdev <<< \$( samtools view -r $cReadGroupID $projectDir/alignments/$cSample/$cSample.bam | python3 $S_SV_scriptDir/pairend_distro-a1.py -r \${readLArr[$outStemSC]} -X 2 -N 100000 -o $r_PreProc/$cReadGroupID.pe.histo | cut -d \":\" -f 2 )\n";		
 				print OUT "meanArr[$outStemSC]=\$mean;stdevArr[$outStemSC]=\$stdev;\n";
@@ -484,6 +484,7 @@ sub lumpy {
 		close(OUT);
 		
 	}
+	
 	for($i=0; $i<=$#SampleOrder; $i+=$lumpyBatchSize){
 		$LP_z=3;$LP_srw=2;$LP_MQ=20;
 
@@ -506,7 +507,7 @@ sub lumpy {
 		print OUT "perl -e 'while(<>){ if(/^#/){\$h.=\$_; next;} \@_=split(\"\\t\",\$_); \$c=\$_[0]; if(!exists(\$f{\$c})){ open(\$f{\$c},\">$r_TmpDir/in.\$c.vcf\"); print {\$f{\$c}} \$h; } \n";  
 		print OUT "print {\$f{\$c}} \$_; } foreach (values %f){close} ' $r_OutDir/$nameStemJoint.MQ$LP_MQ.$lumpOrSpeedPreProc$fileExt.vcf \n";			
 
-		print OUT "ls $r_TmpDir/in.*.vcf | xargs -P 12 -t -i{} perl $S_SV_scriptDir/add-depth-to-PE-SR-calls.pl {} $refFasta ".$chrPf." $projectDir $S_SV_controlSRPE $S_SV_control_number_samples $S_control_bw_folder \n";
+		print OUT "ls $r_TmpDir/in.*.vcf | xargs -P 12 -t -i{} perl $S_SV_scriptDir/add-depth-to-PE-SR-calls.pl {} $refFasta ".$refChrPf." $projectDir $S_SV_controlSRPE $S_SV_control_number_samples $S_control_bw_folder \n";
 		print OUT "(grep \"#\" $r_TmpDir/in.".$chrPf."1.out; cat $r_TmpDir/in.*.out | grep -v \"#\" | sort -V -k1,1 -k2,2n ) > $r_OutDir/$nameStemJoint.MQ$LP_MQ.$lumpOrSpeedPreProc$fileExt.f1.vcf\n";	
 		
 
@@ -1444,7 +1445,8 @@ usage: clinsv -p /path/to/project -i /path/to/input_bams/*.bam -ref /path/to/ref
     prefer to run ClinSV on an HPC (where you have a copy of the annotation bundle) and view results on your desktop 
 -l Lumpy batch size. Number of sampels to be joint-called [15]. 
 -ref Path to reference data dir [./refdata-b38 or ./refdata-b37]. This can take two colon separated values, see README.md
--hg19 Specify that input bams use hg19 chromosome nomenclature, use when using input bams that are
+-hg19 Specify that input bams use hg19 chromosome nomenclature (e.g 1,2,3,4,5...X,Y,M), use when using input bams that are
+
 	aligned to hg19 along with the reference data dir refdata-b37.
 -eval Create the NA12878 validation report section [no].
 -h print this help

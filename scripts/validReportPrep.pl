@@ -215,7 +215,7 @@ while(<IN1>){ chomp; @_=split("\t",$_); $chr2len{$_[0]}=$_[1]; }close(IN1);
 	$stat{$cSample}{avgCovX}=$meanCov{$X_chr}{$cSample}; 
 	$stat{$cSample}{avgCovY}=$meanCov{$Y_chr}{$cSample}; 
 	$stat{$cSample}{avgCovMT}=$meanCov{$chrPf."MT"}{$cSample}; 
-	$stat{$cSample}{avgYOrig}=$meanCovYOrig; 
+	$stat{$cSample}{avgYOrig}=$meanCovYOrig;
 
 		
 	######### 1 dot per MB,  output chr:value,value,value
@@ -255,20 +255,34 @@ while(<IN1>){ chomp; @_=split("\t",$_); $chr2len{$_[0]}=$_[1]; }close(IN1);
 			
 		};
 		
-		eval {
-				my $aCov_stat = $bwObj{$cSample}{"q0"}->get_stats($cChr, 0, $chr2len{$cChr}, $qBins, 'mean');
-		} or do {
-				print STDERR "$@\n";
-				print STDERR "trying different chromosome naming convention: $cChrPre\n";
-				my $aCov_stat = $bwObj{$cSample}{"q0"}->get_stats($cChrPre, 0, $chr2len{$cChr}, $qBins, 'mean');
-		};
+		
 
+
+		my $aCov_stat = $bwObj{$cSample}{"q0"}->get_stats($cChr, 0, $chr2len{$cChr}, $qBins, 'mean');
+
+		if ($#$aCov_stat == -1){
+
+			my $aCov_stat = $bwObj{$cSample}{"q0"}->get_stats($cChrPre, 0, $chr2len{$cChr}, $qBins, 'mean');
+		}
+			
+		# If its still -1 it means we have tried both prefixes and we still have a possible empty bigwig object
+		if ($#$aCov_stat == -1){
+			print STDERR "Tried both prefixes: :".$cChr." and ".$cChrPre." and still have an empty bigwig object"
+		}
+
+		
 		for ($i=0; $i<=$#$aCov_stat;$i++){		
 		
 		  $cCov=${$aCov_stat}[$i];
 		  
+		  print STDERR "cCov: $cCov, cDivCov: $cDivCov\n"; 
 		  $cCovVals=round($cCov/$cDivCov,2);
+
+		  print STDERR "cCovVals: $cCovVals\n";
+
 		  $cCovVals+=1 if  ($cChr eq $X_chr  or $cChr eq $Y_chr ) and $num{$cChr} == 0 and $cCovVals>=0;
+		  
+		  print STDERR "cCovVals +=1: $cCovVals\n"; 
 		  push @covVals, $cCovVals;
 		}
 		
@@ -449,6 +463,39 @@ sub average{
         my $average = $total / @$data;
         return $average;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
