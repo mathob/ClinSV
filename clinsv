@@ -1510,8 +1510,9 @@ usage: clinsv -p /path/to/project -i /path/to/input_bams/*.bam -ref /path/to/ref
 -n Name stem for joint-called files (e.g joint vcf file) in case different sample grouping exists. 
    This is necessary if different sets of samples specified wtih -s are analysed within the same 
    project folder, E.g. a family trio and a set of single proband individuals.
- -w short for 'web': In the IGV session file, stream the annotation tracks from a server. Convenient if you
+-w short for 'web': In the IGV session file, stream the annotation tracks from a server. Convenient if you
     prefer to run ClinSV on an HPC (where you have a copy of the annotation bundle) and view results on your desktop 
+-j Path to json file which specifies the resources to be used for each step [./clinsv/resource_available.json]
 -l Lumpy batch size. Number of sampels to be joint-called [15]. 
 -ref Path to reference data dir [./refdata-b38 or ./refdata-b37]. This can take two colon separated values, see README.md
 -hg19 Specify that input bams use hg19 chromosome nomenclature, use when using input bams that are
