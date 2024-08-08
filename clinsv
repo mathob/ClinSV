@@ -326,7 +326,7 @@ sub bigwig {
 
 		# Using resource specified in resource_available.json
 		$job_resource = $resource_available->{$r_JobType}->{$r_JobSubType};
-		print OUT "Using resource:".$job_resource." for job ".$r_JobType.":".$r_JobSubType."\n";
+		print "Using resource:".$job_resource." for job ".$r_JobType.":".$r_JobSubType."\n";
 		$$cJ{rJobResource}=$job_resource;
 		
 		open(OUT,">$$cJ{rShStem}.sh");	
@@ -367,7 +367,7 @@ sub bigwig {
 			
 			# Using resource specified in resource_available.json
 			$job_resource = $resource_available->{$r_JobType}->{$r_JobSubType};
-			print OUT "Using resource:".$job_resource." for job ".$r_JobType.":".$r_JobSubType."\n";
+			print "Using resource:".$job_resource." for job ".$r_JobType.":".$r_JobSubType."\n";
 			$$cJ{rJobResource}=$job_resource;
 			
 			open(OUT,">$$cJ{rShStem}.sh");	
@@ -468,7 +468,7 @@ sub lumpy {
 		
 		# Using resource specified in resource_available.json
 		$job_resource = $resource_available->{$r_JobType}->{$r_JobSubType};
-		print OUT "Using resource:".$job_resource." for job ".$r_JobType.":".$r_JobSubType."\n";
+		print "Using resource:".$job_resource." for job ".$r_JobType.":".$r_JobSubType."\n";
 		$$cJ{rJobResource}=$job_resource;
 
 # 		$$cJ{rQueueType}="express";
@@ -523,7 +523,7 @@ sub lumpy {
 		
 		# Using resource specified in resource_available.json
 		$job_resource = $resource_available->{$r_JobType}->{$r_JobSubType};
-		print OUT "Using resource:".$job_resource." for job ".$r_JobType.":".$r_JobSubType."\n";
+		print "Using resource:".$job_resource." for job ".$r_JobType.":".$r_JobSubType."\n";
 		$$cJ{rJobResource}=$job_resource;
 
 # 		$$cJ{rQueueType}="express";
@@ -581,7 +581,7 @@ sub cnvnator {
 		
 		# Using resource specified in resource_available.json
 		$job_resource = $resource_available->{$r_JobType}->{$r_JobSubType};
-		print OUT "Using resource:".$job_resource." for job ".$r_JobType.":".$r_JobSubType."\n";
+		print "Using resource:".$job_resource." for job ".$r_JobType.":".$r_JobSubType."\n";
 		$$cJ{rJobResource}=$job_resource;
 
 		open(OUT,">$$cJ{rShStem}.sh");
@@ -630,7 +630,7 @@ sub annotate {
 	
 		# Using resource specified in resource_available.json
 		$job_resource = $resource_available->{$r_JobType}->{$r_JobSubType};
-		print OUT "Using resource:".$job_resource." for job ".$r_JobType.":".$r_JobSubType."\n";
+		print "Using resource:".$job_resource." for job ".$r_JobType.":".$r_JobSubType."\n";
 		$$cJ{rJobResource}=$job_resource;
 # 		$$cJ{rQueueType}="normal";
 
@@ -740,7 +740,7 @@ sub prioritize {
 		
 		# Using resource specified in resource_available.json
 		$job_resource = $resource_available->{$r_JobType}->{$r_JobSubType};
-		print OUT "Using resource:".$job_resource." for job ".$r_JobType.":".$r_JobSubType."\n";
+		print "Using resource:".$job_resource." for job ".$r_JobType.":".$r_JobSubType."\n";
 		$$cJ{rJobResource}=$job_resource;
 # 		$$cJ{rQueueType}="normal";
 		
@@ -810,7 +810,7 @@ sub qc {
 
 		# Using resource specified in resource_available.json
 		$job_resource = $resource_available->{$r_JobType}->{$r_JobSubType};
-		print OUT "Using resource:".$job_resource." for job ".$r_JobType.":".$r_JobSubType."\n";
+		print "Using resource:".$job_resource." for job ".$r_JobType.":".$r_JobSubType."\n";
 		$$cJ{rJobResource}=$job_resource;
 		
 # 		$$cJ{rQueueType}="normal";
