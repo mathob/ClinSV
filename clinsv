@@ -13,6 +13,8 @@ use POSIX qw/strftime/;
 use FindBin qw($RealBin);
 use lib "$RealBin/../perlib";
 
+use JSON::Parse 'read_json';
+use Data::Dumper::Simple;
 
 ########################################
 ######################################## default settings
@@ -32,6 +34,8 @@ $S_ref_data="$S_clinsv_dir/refdata-b37";
 $projectDir_host='';
 $S_ref_data_host='';
 
+$resource_available_path="$S_clinsv_dir/resource_available.json";
+
 GetOptions (
 		    "p=s"  => \$projectDir,
 		    "r=s"  => \$runString,
@@ -46,14 +50,21 @@ GetOptions (
 		    "l=i"  => \$lumpyBatchSize,
 		    "eval"  => \$eval,
 		    "w"  => \$igvweb,
+			"j=s" => \$resource_available_path,
 		    "v"  => \$version,
 )  or die("Error in command line arguments\n");
 
 if($help){  printHelp(); exit; }
 if($version){  print "$clinSvVersion\n"; exit; }
 
-## check projectDir
 
+$resource_available = read_json($resource_available_path);
+
+# Checks that the resource_availble json contains keys for all required steps
+check_resource_available_keys($resource_available);
+
+
+## check projectDir
 @bamInArr=glob("$inputAlignDir");
 if(scalar(@bamInArr)==0){print {STDERR} "\n **** error: no bam files found under $inputAlignDir **** \n"; printHelp(); exit}
 
@@ -1417,7 +1428,34 @@ sub sec_to_hhmmss {
   return sprintf ("%02d:%02d:%02d", $hourz,$minz,$secz)
 }
 
+sub check_resource_available_keys {
+    my ($resource_available) = @_;
 
+    my %expected_keys = (
+        'annotate' => ['main'],
+        'prioritize' => ['main'],
+        'cnvnator' => ['caller'],
+        'qc' => ['main'],
+        'bigwig' => ['q20', 'q0', 'createWigs', 'mq'],
+        'lumpy' => ['depth', 'caller']
+    );
+
+    foreach my $key (keys %expected_keys) {
+        unless (exists $resource_available->{$key}) {
+            print {STDERR} "\n **** error: Key '$key' does not exist in the resourse_available.json.\n";
+            exit;
+        }
+
+        foreach my $subkey (@{$expected_keys{$key}}) {
+            unless (exists $resource_available->{$key}->{$subkey}) {
+                print  {STDERR} "\n **** error: Subkey '$subkey' does not exist under key '$key' in the resourse_available.json.\n";
+                exit;
+            }
+        }
+    }
+
+    print "All expected keys and subkeys exist in the resourse_available.json.\n";
+}
 sub printHelp{
 
 print STDERR "
