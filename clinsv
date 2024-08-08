@@ -323,7 +323,11 @@ sub bigwig {
 		$r_JobUnit="$cSample"; #! edit here $cSample or joined
 		$cJ=setUpJ($r_JobType,$r_JobSubType,$r_JobUnit,$r_OutDir,$r_TmpDir);
 		$$cJ{rDependencies}=[];
-		$$cJ{rJobResource}="walltime=6:00:00,ncpus=16,mem=10GB"; #! edit here
+
+		# Using resource specified in resource_available.json
+		$job_resource = $resource_available->{$r_JobType}->{$r_JobSubType};
+		print OUT "Using resource:".$job_resource." for job ".$r_JobType.":".$r_JobSubType."\n";
+		$$cJ{rJobResource}=$job_resource;
 		
 		open(OUT,">$$cJ{rShStem}.sh");	
 		print OUT "$r_head\n\n";	
@@ -360,8 +364,11 @@ sub bigwig {
 			$r_JobUnit="$cSample"; #! edit here $cSample or joined
 			$cJ=setUpJ($r_JobType,$r_JobSubType,$r_JobUnit,$r_OutDir,$r_TmpDir);
 			$$cJ{rDependencies}=[[$r_JobType,"createWigs",$cSample,"afterok"]];  #! edit here
-			$$cJ{rJobResource}="walltime=2:00:00,ncpus=1,mem=60GB,jobfs=100gb"; #! edit here
-			$$cJ{rJobResource}="walltime=5:00:00,ncpus=1,mem=60GB,jobfs=100gb" if $r_JobSubType eq "mq";
+			
+			# Using resource specified in resource_available.json
+			$job_resource = $resource_available->{$r_JobType}->{$r_JobSubType};
+			print OUT "Using resource:".$job_resource." for job ".$r_JobType.":".$r_JobSubType."\n";
+			$$cJ{rJobResource}=$job_resource;
 			
 			open(OUT,">$$cJ{rShStem}.sh");	
 			print OUT "$r_head\n\n";
@@ -458,7 +465,12 @@ sub lumpy {
 		$r_JobSubType="caller"; #! edit here
 		$cJ=setUpJ($r_JobType,$r_JobSubType,$r_JobUnit,$r_OutDir);
 		$$cJ{rDependencies}=[["lumpy","preproc","all","afterok"]]; #! edit here
-		$$cJ{rJobResource}="walltime=22:00:00,mem=60GB,ncpus=1,jobfs=300gb"; #! edit here
+		
+		# Using resource specified in resource_available.json
+		$job_resource = $resource_available->{$r_JobType}->{$r_JobSubType};
+		print OUT "Using resource:".$job_resource." for job ".$r_JobType.":".$r_JobSubType."\n";
+		$$cJ{rJobResource}=$job_resource;
+
 # 		$$cJ{rQueueType}="express";
 		
 		open(OUT,">$$cJ{rShStem}.sh");
@@ -508,7 +520,12 @@ sub lumpy {
 		$r_TmpDir="$r_OutDir/tmp";
 		$cJ=setUpJ($r_JobType,$r_JobSubType,$r_JobUnit,$r_OutDir,$r_TmpDir);
 		$$cJ{rDependencies}=[["lumpy","caller",$r_JobUnit,"afterok"],["bigwig","q0","all","afterok"],["bigwig","q20","all","afterok"],["bigwig","mq","all","afterok"]]; #! edit here
-		$$cJ{rJobResource}="walltime=8:00:00,ncpus=12,mem=30GB,jobfs=50G"; #! edit here
+		
+		# Using resource specified in resource_available.json
+		$job_resource = $resource_available->{$r_JobType}->{$r_JobSubType};
+		print OUT "Using resource:".$job_resource." for job ".$r_JobType.":".$r_JobSubType."\n";
+		$$cJ{rJobResource}=$job_resource;
+
 # 		$$cJ{rQueueType}="express";
 		open(OUT,">$$cJ{rShStem}.sh");
 		$r_head.="export PERL5LIB=$S_clinsv_dir/perlib:\$PERL5LIB\n";
@@ -561,7 +578,11 @@ sub cnvnator {
 		
 		$cJ=setUpJ($r_JobType,$r_JobSubType,$r_JobUnit,$r_OutDir,$r_TmpDir);
 		$$cJ{rDependencies}=[["lumpy","preproc",$cSample,"afterok"],["bigwig","q0",$cSample,"afterok"],["bigwig","q20",$cSample,"afterok"],["bigwig","mq",$cSample,"afterok"]];  #! edit here
-		$$cJ{rJobResource}="walltime=6:00:00,mem=30GB,ncpus=16,jobfs=300gb"; #! edit here
+		
+		# Using resource specified in resource_available.json
+		$job_resource = $resource_available->{$r_JobType}->{$r_JobSubType};
+		print OUT "Using resource:".$job_resource." for job ".$r_JobType.":".$r_JobSubType."\n";
+		$$cJ{rJobResource}=$job_resource;
 
 		open(OUT,">$$cJ{rShStem}.sh");
 		print OUT "$r_head\n";
@@ -607,7 +628,10 @@ sub annotate {
 		push @{$$cJ{rDependencies}}, ["vqsr","VariantRecalibrator","joined","afterok"] if exists($allStepsH{"vqsr"});
 		push @{$$cJ{rDependencies}}, ["freebayes","caller","all","afterok"] if exists($allStepsH{"freebayes"}) ;
 	
-		$$cJ{rJobResource}="walltime=10:00:00,mem=10GB,ncpus=1,jobfs=20gb"; #! edit here
+		# Using resource specified in resource_available.json
+		$job_resource = $resource_available->{$r_JobType}->{$r_JobSubType};
+		print OUT "Using resource:".$job_resource." for job ".$r_JobType.":".$r_JobSubType."\n";
+		$$cJ{rJobResource}=$job_resource;
 # 		$$cJ{rQueueType}="normal";
 
 		undef @extensions;
@@ -714,7 +738,10 @@ sub prioritize {
 		$cJ=setUpJ($r_JobType,$r_JobSubType,$r_JobUnit,$r_OutDir,$r_TmpDir);
 		$$cJ{rDependencies}=[["annotate","main","all","afterok"]];  #! edit here
 		
-		$$cJ{rJobResource}="walltime=1:00:00,mem=3GB,ncpus=1,jobfs=20gb"; #! edit here
+		# Using resource specified in resource_available.json
+		$job_resource = $resource_available->{$r_JobType}->{$r_JobSubType};
+		print OUT "Using resource:".$job_resource." for job ".$r_JobType.":".$r_JobSubType."\n";
+		$$cJ{rJobResource}=$job_resource;
 # 		$$cJ{rQueueType}="normal";
 		
 		### write annotsv commands sampleInfoFile
@@ -780,8 +807,12 @@ sub qc {
 	
 		$cJ=setUpJ($r_JobType,$r_JobSubType,$r_JobUnit,$r_OutDir,$r_TmpDir);
 		$$cJ{rDependencies}=[["prioritize","main","all","afterok"]];  #! edit here
+
+		# Using resource specified in resource_available.json
+		$job_resource = $resource_available->{$r_JobType}->{$r_JobSubType};
+		print OUT "Using resource:".$job_resource." for job ".$r_JobType.":".$r_JobSubType."\n";
+		$$cJ{rJobResource}=$job_resource;
 		
-		$$cJ{rJobResource}="walltime=01:00:00,mem=2GB,ncpus=1,jobfs=20gb"; #! edit here
 # 		$$cJ{rQueueType}="normal";
 		
 		### write qc commands sampleInfoFile
