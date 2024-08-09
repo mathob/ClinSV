@@ -63,7 +63,13 @@ $resource_available = read_json($resource_available_path);
 # Checks that the resource_availble json contains keys for all required steps
 check_resource_available_keys($resource_available);
 
+# If no project dir is given default to cwd
+if (length($projectDir)<1){
+	$projectDir=cwd();
+}else{
+	$projectDir = abs_path $projectDir;
 
+}
 ## check projectDir
 @bamInArr=glob("$inputAlignDir");
 if(scalar(@bamInArr)==0){print {STDERR} "\n **** error: no bam files found under $inputAlignDir **** \n"; printHelp(); exit}
@@ -396,7 +402,7 @@ sub lumpy {
 	
 	$r_head="set -e -x -o pipefail\n\n"; 
 	$r_head.=$S_python."export PATH=$softBin:\$PATH\n"; 
-	print  "# $r_JobType\n\n";
+	print  "\n# $r_JobType\n\n";
 	
 	################ preprocessing
 	foreach $cSample (sort keys %fastq){
@@ -559,7 +565,7 @@ sub lumpy {
 sub cnvnator {
   
   	$r_JobType="cnvnator";
-	print  "# cnvnator\n\n";	
+	print  "\n# $r_JobType\n\n";	
 
 	### write cnvnator commands sampleInfoFile
 	$r_head="";
@@ -602,10 +608,10 @@ sub cnvnator {
 }
 
 sub annotate {
-    
-  	print  "# annotate\n\n";
 	
 	$r_JobType="annotate";
+
+	print  "\n# $r_JobType\n\n";
 	$r_JobSubType="main"; #! edit here
 	
 	
@@ -717,9 +723,9 @@ sub annotate {
 }
 
 sub prioritize {
-	print  "# prioritize\n\n";
-	
+
 	$r_JobType="prioritize";
+	print  "\n# $r_JobType\n\n";
 	$r_JobSubType="main"; #! edit here
 	
 	
@@ -786,10 +792,9 @@ sub prioritize {
 }
 
 sub qc {
-
-	print  "# qc\n\n";
 	
 	$r_JobType="qc";
+	print  "\n# $r_JobType\n\n";
 	$r_JobSubType="main"; #! edit here
 	
 	@SampleOrder=sort keys %fastq;		
@@ -1515,8 +1520,10 @@ usage: clinsv -p /path/to/project -i /path/to/input_bams/*.bam -ref /path/to/ref
 -j Path to json file which specifies the resources to be used for each step [./clinsv/resource_available.json]
 -l Lumpy batch size. Number of sampels to be joint-called [15]. 
 -ref Path to reference data dir [./refdata-b38 or ./refdata-b37]. This can take two colon separated values, see README.md
--hg19 Specify that input bams use hg19 chromosome nomenclature, use when using input bams that are
-	aligned to hg19 along with the reference data dir refdata-b37.
+-hg19 Specify that input bams use hg19 chromosome nomenclature (e.g. short form '1,2,3..X,Y,MT'), use when using input bams that are
+aligned to hg19. Ensure sure with the reference data dir refdata-b37. Warning this is an unstable feature. Highly recommend to lift over input bams to
+GRCH37/GRCH8 with another tool like CrossMap, then use ClinSV with those ref genomes as usual.
+
 -eval Create the NA12878 validation report section [no].
 -h print this help
 
