@@ -20,7 +20,7 @@ use Data::Dumper::Simple;
 ######################################## default settings
 ########################################
 
-$clinSvVersion="1.1 (2024-03-08)";
+$clinSvVersion="1.1.0 (2024-03-08)";
 
 $runString="all";
 $inputAlignDir="./input/*.bam";
