@@ -13,11 +13,12 @@ use File::Basename;
 
 $projectDir=shift(@ARGV);
 $inRef=shift(@ARGV);
+$inRefStyle=shift(@ARGV);
 $fileExt=shift(@ARGV);
 $cSample=shift(@ARGV);
 $nameStemJoinF=shift(@ARGV);
 
-if (basename($inRef) =~ /38/){
+if ($inRefStyle =~ /chr/){
 	$chrPf='chr';
 	$Y_chr="chrY";
 	$X_chr="chrX";
@@ -74,7 +75,8 @@ while(<IN1>){ chomp; @_=split("\t",$_); $chr2len{$_[0]}=$_[1]; }close(IN1);
 		undef @tmpAIns;
 		make_path($projectDir."/SVs/qc/insertSizes") if (! -d $projectDir."/SVs/qc/insertSizes");
 		open(OUTINS, ">$projectDir/SVs/qc/insertSizes/$cSample.txt") || die "can not read bam file";
-	
+
+		#$chrPf here refers to input bam chromsome naming convention
 		open(INB, "samtools view -T $inRef $cBam ".$chrPf."1:20000001-30000000 | ") || die "can not read bam file"; 
 		# ST-E00141:48:H0ATBALXX:1:1220:8105:62471        163     1       19999858        60      150M    =       20000040        332     TCCAGAGTCTGTCTTGT  <AFFFJJF  NM:i:1  MD:Z:149A0      AS:i:149        XS:i:70 MC:Z:150M       MQ:i:60 RG:Z:H0ATBALXX_1
 		while(<INB>){
@@ -97,13 +99,12 @@ while(<IN1>){ chomp; @_=split("\t",$_); $chr2len{$_[0]}=$_[1]; }close(IN1);
 		close(INB);
 	
 		close(OUTINS);
-	
 		print STDERR " of $countAllPairs read pairs in region ".$chrPf."1:20000001-30000000\n";
 		$PcNotPropPair=round($countPcNotPropPair/$countAllPairs*100,3);
 		$PcMapDiffChr=round($countDiffrChr/$countAllPairs*100,3);
 		print STDERR " % not proper pair: $PcNotPropPair\n";
 		print STDERR " % mapping different Chr: $PcMapDiffChr\n";
-	
+
 		$stat{$cSample}{testRegion}="".$chrPf."1:20000001-30000000";
 		$stat{$cSample}{PcNotPropPair}=$PcNotPropPair;
 		$stat{$cSample}{PcMapDiffChr}=$PcMapDiffChr;
@@ -116,6 +117,7 @@ while(<IN1>){ chomp; @_=split("\t",$_); $chr2len{$_[0]}=$_[1]; }close(IN1);
 		####### stdev
 	
 		undef @tmpArr;
+		#This  refers to ref genome
 		open(INB, "samtools depth --reference $inRef -r ".$chrPf."1:20000001-30000000 $cBam | ") || die "can not read bam file"; 
 		# ST-E00141:48:H0ATBALXX:1:1220:8105:62471        163     1       19999858        60      150M    =       20000040        332     TCCAGAGTCTGTCTTGT  <AFFFJJF  NM:i:1  MD:Z:149A0      AS:i:149        XS:i:70 MC:Z:150M       MQ:i:60 RG:Z:H0ATBALXX_1
 		while(<INB>){
@@ -213,7 +215,7 @@ while(<IN1>){ chomp; @_=split("\t",$_); $chr2len{$_[0]}=$_[1]; }close(IN1);
 	$stat{$cSample}{avgCovX}=$meanCov{$X_chr}{$cSample}; 
 	$stat{$cSample}{avgCovY}=$meanCov{$Y_chr}{$cSample}; 
 	$stat{$cSample}{avgCovMT}=$meanCov{$chrPf."MT"}{$cSample}; 
-	$stat{$cSample}{avgYOrig}=$meanCovYOrig; 
+	$stat{$cSample}{avgYOrig}=$meanCovYOrig;
 
 		
 	######### 1 dot per MB,  output chr:value,value,value
@@ -233,7 +235,7 @@ while(<IN1>){ chomp; @_=split("\t",$_); $chr2len{$_[0]}=$_[1]; }close(IN1);
 		
 		$qBins=ceil($chr2len{$cChr}/1000000);
 		undef @aCov; undef(@covVals);
-		
+
 		$cDivCov=$meanCov{$cChr}{$cSample};
 		$cChr2=$cChr;
 		
@@ -251,16 +253,36 @@ while(<IN1>){ chomp; @_=split("\t",$_); $chr2len{$_[0]}=$_[1]; }close(IN1);
 				$cChr2=$cChr."0"; # XX or X or Y or X0 or Yo
 			}
 			
-		}
+		};
 		
+		
+
+
 		my $aCov_stat = $bwObj{$cSample}{"q0"}->get_stats($cChr, 0, $chr2len{$cChr}, $qBins, 'mean');
 
+		if ($#$aCov_stat == -1){
+
+			my $aCov_stat = $bwObj{$cSample}{"q0"}->get_stats($cChrPre, 0, $chr2len{$cChr}, $qBins, 'mean');
+		}
+			
+		# If its still -1 it means we have tried both prefixes and we still have a possible empty bigwig object
+		if ($#$aCov_stat == -1){
+			print STDERR "Tried both prefixes: :".$cChr." and ".$cChrPre." and still have an empty bigwig object"
+		}
+
+		
 		for ($i=0; $i<=$#$aCov_stat;$i++){		
 		
 		  $cCov=${$aCov_stat}[$i];
 		  
+		  print STDERR "cCov: $cCov, cDivCov: $cDivCov\n"; 
 		  $cCovVals=round($cCov/$cDivCov,2);
+
+		  print STDERR "cCovVals: $cCovVals\n";
+
 		  $cCovVals+=1 if  ($cChr eq $X_chr  or $cChr eq $Y_chr ) and $num{$cChr} == 0 and $cCovVals>=0;
+		  
+		  print STDERR "cCovVals +=1: $cCovVals\n"; 
 		  push @covVals, $cCovVals;
 		}
 		
@@ -441,6 +463,39 @@ sub average{
         my $average = $total / @$data;
         return $average;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
