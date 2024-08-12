@@ -345,11 +345,25 @@ sub bigwig {
 		print OUT "cd $r_OutDir/\n";
 
 		#Get max number of CPUs allocated
-		$max_ncpu  = $job_resource =~ /ncpus=(\d+)/;
+		if ($job_resource =~ /ncpus=(\d+)/)
+		{
+			$max_ncpu = $1;
+		}else{
+			print STDERR "Unable to extract out max ncpu from $job_resource. Please ensure this is in the form of walltime=hh:mm:ss,ncpus=X,mem=YGB in the -j resource availble json\n";
+			exit (1);
+		}
+		
+		#
+		if ($max_ncpu <= 1){
 
-		#If the num of cpus available is greater than the allocated cpus, use the max allocated. Otherwise use the max cpus available from 'nproc' command. Accounting for 1 cpu used small contigs.
-		print OUT "(( ncpus = `nproc` <  $max_ncpu - 1 ? `nproc` : $max_ncpu - 1 ))\n";
+			print OUT "(( ncpus = `nproc` < 1 ?  `nproc` :1))\n";
+		}else{
 
+			#If the num of cpus available is greater than the allocated cpus, use the max allocated. Otherwise use the max cpus available from 'nproc' command. Accounting for 1 cpu used small contigs.
+			print OUT "(( ncpus = `nproc` <  $max_ncpu - 1 ? `nproc` : $max_ncpu - 1 ))\n";
+
+		}
+		
 		foreach $cT (("q0","q20","mq")){ # create bw of s1 for MQ>=0 and MQ>=20
 
 			if($cT eq "mq"){
@@ -542,10 +556,16 @@ sub lumpy {
 		$$cJ{rJobResource}=$job_resource;
 
 		#Get max number of CPUs allocated
-		$max_ncpu  = $job_resource =~ /ncpus=(\d+)/;
-
-		#If the num of cpus available is greater than the allocated cpus, use the max allocated. Otherwise use the max cpus available from 'nproc' command.
-		print OUT "(( ncpus = `nproc` <  $max_ncpu ? `nproc` : $max_ncpu))\n";
+		if ($job_resource =~ /ncpus=(\d+)/)
+		{
+			$max_ncpu = $1;
+		}else{
+			print STDERR "Unable to extract out max ncpu from $job_resource. Please ensure this is in the form of walltime=hh:mm:ss,ncpus=X,mem=YGB in the -j resource availble json\n";
+			exit (1);
+		}
+		
+		#If the num of cpus available is greater than the allocated cpus, use the max allocated. Otherwise use the max cpus available from 'nproc' command. Accounting for 1 cpu used small contigs.
+		print OUT "(( ncpus = `nproc` <  $max_ncpu ? `nproc` : $max_ncpu ))\n";
 
 # 		$$cJ{rQueueType}="express";
 		open(OUT,">$$cJ{rShStem}.sh");
@@ -1494,13 +1514,13 @@ sub check_resource_available_keys {
     foreach my $key (keys %expected_keys) {
         unless (exists $resource_available->{$key}) {
             print {STDERR} "\n **** error: Key '$key' does not exist in the resourse_available.json.\n";
-            exit;
+            exit (1);
         }
 
         foreach my $subkey (@{$expected_keys{$key}}) {
             unless (exists $resource_available->{$key}->{$subkey}) {
                 print  {STDERR} "\n **** error: Subkey '$subkey' does not exist under key '$key' in the resourse_available.json.\n";
-                exit;
+                exit (1);
             }
         }
     }
