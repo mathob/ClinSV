@@ -34,8 +34,8 @@ $S_ref_data="$S_clinsv_dir/refdata-b37";
 $projectDir_host='';
 $S_ref_data_host='';
 
-$resource_available_path="$S_clinsv_dir/resource_available.json";
-
+# $resource_available_path="$S_clinsv_dir/resource_available.json";
+$resource_available_path="";
 GetOptions (
 		    "p=s"  => \$projectDir,
 		    "r=s"  => \$runString,
@@ -57,11 +57,16 @@ GetOptions (
 if($help){  printHelp(); exit; }
 if($version){  print "$clinSvVersion\n"; exit; }
 
+if (length($resource_available_path) < 1){
+	# Use default resources
+	$resource_available = use_default_resources();
+}else{
+	# read in json of resources available 
+	$resource_available = read_json($resource_available_path);
+	# Checks that the resource_availble json contains keys for all required steps
+	check_resource_available_keys($resource_available);
+}
 
-$resource_available = read_json($resource_available_path);
-
-# Checks that the resource_availble json contains keys for all required steps
-check_resource_available_keys($resource_available);
 
 # If no project dir is given default to cwd
 if (length($projectDir)<1){
@@ -1487,6 +1492,35 @@ sub check_resource_available_keys {
     }
 
     print "All expected keys and subkeys exist in the resourse_available.json.\n";
+}
+
+# Creates the resource_available hash to use default values
+sub use_default_resources {
+
+	my $resource_available = {};
+
+	# bigwig
+	$resource_available->{'bigwig'}->{'createWigs'} =  "walltime=6:00:00,ncpus=16,mem=10GB";
+	$resource_available->{'bigwig'}->{'q0'} = "walltime=2:00:00,ncpus=1,mem=60GB,jobfs=100gb";
+	$resource_available->{'bigwig'}->{'q20'} = "walltime=2:00:00,ncpus=1,mem=60GB,jobfs=100gb";
+	$resource_available->{'bigwig'}->{'mq'} = "walltime=5:00:00,ncpus=1,mem=60GB,jobfs=100gb";
+
+	# lumpy
+	$resource_available->{'lumpy'}->{'caller'} = "walltime=22:00:00,mem=60GB,ncpus=1,jobfs=300gb";
+	$resource_available->{'lumpy'}->{'depth'} = "walltime=8:00:00,ncpus=12,mem=30GB,jobfs=50G";
+
+	# cnvnator
+	$resource_available->{'cnvnator'}->{'caller'} = "walltime=6:00:00,mem=30GB,ncpus=16,jobfs=300gb";
+
+	# annotate
+	$resource_available->{'annotate'}->{'main'} = "walltime=10:00:00,mem=10GB,ncpus=1,jobfs=20gb";
+
+	# prioritize
+	$resource_available->{'prioritize'}->{'main'} = "walltime=1:00:00,mem=3GB,ncpus=1,jobfs=20gb";
+
+	# qc
+	$resource_available->{'qc'}->{'main'} = "walltime=01:00:00,mem=2GB,ncpus=1,jobfs=20gb";
+	return $resource_available;
 }
 sub printHelp{
 
