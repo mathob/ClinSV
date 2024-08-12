@@ -13,14 +13,12 @@ use POSIX qw/strftime/;
 use FindBin qw($RealBin);
 use lib "$RealBin/../perlib";
 
-use JSON::Parse 'read_json';
-use Data::Dumper::Simple;
 
 ########################################
 ######################################## default settings
 ########################################
 
-$clinSvVersion="1.1 (2024-03-08)";
+$clinSvVersion="1.0.1 (2023-02-21)";
 
 $runString="all";
 $inputAlignDir="./input/*.bam";
@@ -34,8 +32,6 @@ $S_ref_data="$S_clinsv_dir/refdata-b37";
 $projectDir_host='';
 $S_ref_data_host='';
 
-$resource_available_path="$S_clinsv_dir/resource_available.json";
-
 GetOptions (
 		    "p=s"  => \$projectDir,
 		    "r=s"  => \$runString,
@@ -45,26 +41,18 @@ GetOptions (
 		    "f"  => \$force,	
 		    "a"  => \$S_AskBeforeSub,
 		    "ref=s"  => \$S_ref_data,
-			"hg19" => \$isHg19,
 		    "h"  => \$help,
 		    "l=i"  => \$lumpyBatchSize,
 		    "eval"  => \$eval,
 		    "w"  => \$igvweb,
-			"j=s" => \$resource_available_path,
 		    "v"  => \$version,
 )  or die("Error in command line arguments\n");
 
 if($help){  printHelp(); exit; }
 if($version){  print "$clinSvVersion\n"; exit; }
 
-
-$resource_available = read_json($resource_available_path);
-
-# Checks that the resource_availble json contains keys for all required steps
-check_resource_available_keys($resource_available);
-
-
 ## check projectDir
+
 @bamInArr=glob("$inputAlignDir");
 if(scalar(@bamInArr)==0){print {STDERR} "\n **** error: no bam files found under $inputAlignDir **** \n"; printHelp(); exit}
 
@@ -150,9 +138,6 @@ $S_cnvnator_bin="$S_clinsv_dir/cnvnator-multi";
 $S_cnvnator_chroms="$S_ref_data/cnvnator_chroms";
 $S_root_src="$S_clinsv_dir/root";
 
-# Gemini
-$geminiRscr="/scratch/gd7/resources/kccg-gemini";
-$geminiBin="/scratch/gd7/resources/gemini/bin";
 
 # for annotate
 $S_KDB_SV="$S_ref_data/annotation/MGRB-SV.bed.gz"; # to create see create-KDB-SV.pl in AZ_MA-comparisons.txt
@@ -192,21 +177,8 @@ if ($S_ref_data_v eq "b37"){
 	#$refFasta_bwa="$S_GATK_bundle/human_g1k_v37_decoy.fasta";
 	$refFasta="$S_ref_data/genome/human_g1k_v37_decoy.fasta";
 	
-
-	# used in ValidReportPrep.pl script as input
-	$refChrPf = 'blank';
-
-	if ($isHg19)
-	{
-		$chrPf='chr';
-		$refChrPf = 'chr';
-
-	}else{
-		$chrPf='';
-
-	}
-	$wig_line_count=3140518470;
-
+	$chrPf='';
+	$wig_line_count=$wig_line_count;
 	
 }elsif ($S_ref_data_v eq "b38"){
 	
@@ -237,10 +209,9 @@ if ($S_ref_data_v eq "b37"){
 	$refFasta="$S_ref_data/genome/Homo_sapiens_assembly38.fasta";
 
 	$chrPf='chr';
-	# used in ValidReportPrep.pl script as input
-	$refChrPf = 'chr';
 	$wig_line_count=3220490784;
 }
+
 
 ############### check if user defined run steps are part of above defined pipeline
 
@@ -323,11 +294,7 @@ sub bigwig {
 		$r_JobUnit="$cSample"; #! edit here $cSample or joined
 		$cJ=setUpJ($r_JobType,$r_JobSubType,$r_JobUnit,$r_OutDir,$r_TmpDir);
 		$$cJ{rDependencies}=[];
-
-		# Using resource specified in resource_available.json
-		$job_resource = $resource_available->{$r_JobType}->{$r_JobSubType};
-		print "Using resource:".$job_resource." for job ".$r_JobType.":".$r_JobSubType."\n";
-		$$cJ{rJobResource}=$job_resource;
+		$$cJ{rJobResource}="walltime=6:00:00,ncpus=16,mem=10GB"; #! edit here
 		
 		open(OUT,">$$cJ{rShStem}.sh");	
 		print OUT "$r_head\n\n";	
@@ -364,11 +331,8 @@ sub bigwig {
 			$r_JobUnit="$cSample"; #! edit here $cSample or joined
 			$cJ=setUpJ($r_JobType,$r_JobSubType,$r_JobUnit,$r_OutDir,$r_TmpDir);
 			$$cJ{rDependencies}=[[$r_JobType,"createWigs",$cSample,"afterok"]];  #! edit here
-			
-			# Using resource specified in resource_available.json
-			$job_resource = $resource_available->{$r_JobType}->{$r_JobSubType};
-			print "Using resource:".$job_resource." for job ".$r_JobType.":".$r_JobSubType."\n";
-			$$cJ{rJobResource}=$job_resource;
+			$$cJ{rJobResource}="walltime=2:00:00,ncpus=1,mem=60GB,jobfs=100gb"; #! edit here
+			$$cJ{rJobResource}="walltime=5:00:00,ncpus=1,mem=60GB,jobfs=100gb" if $r_JobSubType eq "mq";
 			
 			open(OUT,">$$cJ{rShStem}.sh");	
 			print OUT "$r_head\n\n";
@@ -417,7 +381,7 @@ sub lumpy {
 		# get mean and stdev per sample
 		open(OUT,">$$cJ{rShStem}.sh");
 		print OUT "$r_head";
-
+		
 		print OUT "perl $S_SV_scriptDir/filterConcordantPairs.pl $alignOut/$cSample.bam 100:100 ".$chrPf."1:1000001-5000000 $refFasta | samtools view -Sb - | samtools sort -m 1G -T $r_TmpDir/$cSample.discordants -o $r_OutDir/$cSample.discordants.bam -  &\n";
 		print OUT "samtools view -T $refFasta -h $alignOut/$cSample.bam  | python $S_lumpy_scripts/extractSplitReads_BwaMem -i stdin | awk '\$3 != \"hs37d5\" && \$3 != \"NC_007605\"' | samtools view -Sb - | samtools sort -m 1G -T $r_TmpDir/$cSample.splitters -o $r_OutDir/$cSample.splitters.bam - &\n";
 		print OUT "wait\n"; 
@@ -465,12 +429,7 @@ sub lumpy {
 		$r_JobSubType="caller"; #! edit here
 		$cJ=setUpJ($r_JobType,$r_JobSubType,$r_JobUnit,$r_OutDir);
 		$$cJ{rDependencies}=[["lumpy","preproc","all","afterok"]]; #! edit here
-		
-		# Using resource specified in resource_available.json
-		$job_resource = $resource_available->{$r_JobType}->{$r_JobSubType};
-		print "Using resource:".$job_resource." for job ".$r_JobType.":".$r_JobSubType."\n";
-		$$cJ{rJobResource}=$job_resource;
-
+		$$cJ{rJobResource}="walltime=22:00:00,mem=60GB,ncpus=1,jobfs=300gb"; #! edit here
 # 		$$cJ{rQueueType}="express";
 		
 		open(OUT,">$$cJ{rShStem}.sh");
@@ -482,10 +441,6 @@ sub lumpy {
 			foreach $cReadGroupID (keys %{$fastq{$cSample}}){
 				$outStemSC=$cReadGroupID; $outStemSC=~ s/\-/_/g;		
 				print OUT "readLArr[$outStemSC]=\$(samtools view  $projectDir/alignments/$cSample/$cSample.bam ".$chrPf."1:1000000-1100000 | cut -f 10 | awk '{ print length}' | sort -rn | awk '(NR==1){print}' )\n";
-				
-				# Test to make sure readLArr[$outStemSC] is not empty as we the bam could be aligned to a different naming convention. If so try the hg19 naming convention
-				# print OUT "[ -z \"$readLArr[$outStemSC]\" ] && readLArr[$outStemSC]=\$(samtools view  $projectDir/alignments/$cSample/$cSample.bam chr1:1000000-1100000 | cut -f 10 | awk '{ print length}' | sort -rn | awk '(NR==1){print}' )\n";
-				
 				print OUT "read -r mean stdev <<< \$( samtools view -r $cReadGroupID $projectDir/alignments/$cSample/$cSample.bam | python3 $S_SV_scriptDir/pairend_distro-a1.py -r \${readLArr[$outStemSC]} -X 2 -N 100000 -o $r_PreProc/$cReadGroupID.pe.histo | cut -d \":\" -f 2 )\n";		
 				print OUT "meanArr[$outStemSC]=\$mean;stdevArr[$outStemSC]=\$stdev;\n";
 			}	
@@ -507,7 +462,6 @@ sub lumpy {
 		close(OUT);
 		
 	}
-	
 	for($i=0; $i<=$#SampleOrder; $i+=$lumpyBatchSize){
 		$LP_z=3;$LP_srw=2;$LP_MQ=20;
 
@@ -520,12 +474,7 @@ sub lumpy {
 		$r_TmpDir="$r_OutDir/tmp";
 		$cJ=setUpJ($r_JobType,$r_JobSubType,$r_JobUnit,$r_OutDir,$r_TmpDir);
 		$$cJ{rDependencies}=[["lumpy","caller",$r_JobUnit,"afterok"],["bigwig","q0","all","afterok"],["bigwig","q20","all","afterok"],["bigwig","mq","all","afterok"]]; #! edit here
-		
-		# Using resource specified in resource_available.json
-		$job_resource = $resource_available->{$r_JobType}->{$r_JobSubType};
-		print "Using resource:".$job_resource." for job ".$r_JobType.":".$r_JobSubType."\n";
-		$$cJ{rJobResource}=$job_resource;
-
+		$$cJ{rJobResource}="walltime=8:00:00,ncpus=12,mem=30GB,jobfs=50G"; #! edit here
 # 		$$cJ{rQueueType}="express";
 		open(OUT,">$$cJ{rShStem}.sh");
 		$r_head.="export PERL5LIB=$S_clinsv_dir/perlib:\$PERL5LIB\n";
@@ -535,7 +484,7 @@ sub lumpy {
 		print OUT "perl -e 'while(<>){ if(/^#/){\$h.=\$_; next;} \@_=split(\"\\t\",\$_); \$c=\$_[0]; if(!exists(\$f{\$c})){ open(\$f{\$c},\">$r_TmpDir/in.\$c.vcf\"); print {\$f{\$c}} \$h; } \n";  
 		print OUT "print {\$f{\$c}} \$_; } foreach (values %f){close} ' $r_OutDir/$nameStemJoint.MQ$LP_MQ.$lumpOrSpeedPreProc$fileExt.vcf \n";			
 
-		print OUT "ls $r_TmpDir/in.*.vcf | xargs -P 12 -t -i{} perl $S_SV_scriptDir/add-depth-to-PE-SR-calls.pl {} $refFasta ".$refChrPf." $projectDir $S_SV_controlSRPE $S_SV_control_number_samples $S_control_bw_folder \n";
+		print OUT "ls $r_TmpDir/in.*.vcf | xargs -P 12 -t -i{} perl $S_SV_scriptDir/add-depth-to-PE-SR-calls.pl {} $refFasta $projectDir $S_SV_controlSRPE $S_SV_control_number_samples $S_control_bw_folder \n";
 		print OUT "(grep \"#\" $r_TmpDir/in.".$chrPf."1.out; cat $r_TmpDir/in.*.out | grep -v \"#\" | sort -V -k1,1 -k2,2n ) > $r_OutDir/$nameStemJoint.MQ$LP_MQ.$lumpOrSpeedPreProc$fileExt.f1.vcf\n";	
 		
 
@@ -565,7 +514,7 @@ sub cnvnator {
 	$r_head="";
 	$r_head.="export PATH=$softBin:\$PATH\n";
 	$r_head.=$S_python; 
-	# $r_head.= "source $S_root_src/bin/thisroot.sh\n";
+	$r_head.= "source $S_root_src/bin/thisroot.sh\n";
 	$r_head.="set -e -x -o pipefail\n\n"; 
 	
 	foreach $cSample (sort keys %fastq){
@@ -578,11 +527,7 @@ sub cnvnator {
 		
 		$cJ=setUpJ($r_JobType,$r_JobSubType,$r_JobUnit,$r_OutDir,$r_TmpDir);
 		$$cJ{rDependencies}=[["lumpy","preproc",$cSample,"afterok"],["bigwig","q0",$cSample,"afterok"],["bigwig","q20",$cSample,"afterok"],["bigwig","mq",$cSample,"afterok"]];  #! edit here
-		
-		# Using resource specified in resource_available.json
-		$job_resource = $resource_available->{$r_JobType}->{$r_JobSubType};
-		print "Using resource:".$job_resource." for job ".$r_JobType.":".$r_JobSubType."\n";
-		$$cJ{rJobResource}=$job_resource;
+		$$cJ{rJobResource}="walltime=6:00:00,mem=30GB,ncpus=16,jobfs=300gb"; #! edit here
 
 		open(OUT,">$$cJ{rShStem}.sh");
 		print OUT "$r_head\n";
@@ -592,7 +537,7 @@ sub cnvnator {
 		print OUT "-T $r_TmpDir -t 14 -w 100 -b $projectDir/alignments/$cSample/$cSample.bam -o $r_OutDir/cnvnator.$cSample ";
 		print OUT "-c $S_cnvnator_chroms -g $S_ref_data_v --exclude '_,HLA,EBV' \n";	#Excluding superflous contigs	
 		
-		print OUT "perl $S_SV_scriptDir/filterCNVNator.pl $r_OutDir/cnvnator.$cSample.txt $cSample $refFasta ".$refChrPf." $projectDir $S_SV_controlSRPE $S_SV_control_number_samples $S_control_bw_folder\n\n";
+		print OUT "perl $S_SV_scriptDir/filterCNVNator.pl $r_OutDir/cnvnator.$cSample.txt $cSample $refFasta $projectDir $S_SV_controlSRPE $S_SV_control_number_samples $S_control_bw_folder\n\n";
 		
 		print OUT "[ -d \"$r_TmpDir\" ] && rm -r $r_TmpDir\n\n" if $removeTmpFilesSh;
 		close(OUT);
@@ -628,10 +573,7 @@ sub annotate {
 		push @{$$cJ{rDependencies}}, ["vqsr","VariantRecalibrator","joined","afterok"] if exists($allStepsH{"vqsr"});
 		push @{$$cJ{rDependencies}}, ["freebayes","caller","all","afterok"] if exists($allStepsH{"freebayes"}) ;
 	
-		# Using resource specified in resource_available.json
-		$job_resource = $resource_available->{$r_JobType}->{$r_JobSubType};
-		print "Using resource:".$job_resource." for job ".$r_JobType.":".$r_JobSubType."\n";
-		$$cJ{rJobResource}=$job_resource;
+		$$cJ{rJobResource}="walltime=10:00:00,mem=10GB,ncpus=1,jobfs=20gb"; #! edit here
 # 		$$cJ{rQueueType}="normal";
 
 		undef @extensions;
@@ -738,10 +680,7 @@ sub prioritize {
 		$cJ=setUpJ($r_JobType,$r_JobSubType,$r_JobUnit,$r_OutDir,$r_TmpDir);
 		$$cJ{rDependencies}=[["annotate","main","all","afterok"]];  #! edit here
 		
-		# Using resource specified in resource_available.json
-		$job_resource = $resource_available->{$r_JobType}->{$r_JobSubType};
-		print "Using resource:".$job_resource." for job ".$r_JobType.":".$r_JobSubType."\n";
-		$$cJ{rJobResource}=$job_resource;
+		$$cJ{rJobResource}="walltime=1:00:00,mem=3GB,ncpus=1,jobfs=20gb"; #! edit here
 # 		$$cJ{rQueueType}="normal";
 		
 		### write annotsv commands sampleInfoFile
@@ -807,12 +746,8 @@ sub qc {
 	
 		$cJ=setUpJ($r_JobType,$r_JobSubType,$r_JobUnit,$r_OutDir,$r_TmpDir);
 		$$cJ{rDependencies}=[["prioritize","main","all","afterok"]];  #! edit here
-
-		# Using resource specified in resource_available.json
-		$job_resource = $resource_available->{$r_JobType}->{$r_JobSubType};
-		print "Using resource:".$job_resource." for job ".$r_JobType.":".$r_JobSubType."\n";
-		$$cJ{rJobResource}=$job_resource;
 		
+		$$cJ{rJobResource}="walltime=01:00:00,mem=2GB,ncpus=1,jobfs=20gb"; #! edit here
 # 		$$cJ{rQueueType}="normal";
 		
 		### write qc commands sampleInfoFile
@@ -832,7 +767,7 @@ sub qc {
 			make_path($projectDir."/SVs/qc/tmpQC") if (! -d $r_SVDir."/SVs/qc/tmpQC");
 		
 			###### prepare data
-			print OUT "perl $S_SV_scriptDir/validReportPrep.pl $projectDir $refFasta ".$refChrPf." \"$fileExt\" $cSample $nameStemJoinF\n\n";
+			print OUT "perl $S_SV_scriptDir/validReportPrep.pl $projectDir $refFasta \"$fileExt\" $cSample $nameStemJoinF\n\n";
 		
 			if($eval){
 			
@@ -1459,41 +1394,13 @@ sub sec_to_hhmmss {
   return sprintf ("%02d:%02d:%02d", $hourz,$minz,$secz)
 }
 
-sub check_resource_available_keys {
-    my ($resource_available) = @_;
 
-    my %expected_keys = (
-        'annotate' => ['main'],
-        'prioritize' => ['main'],
-        'cnvnator' => ['caller'],
-        'qc' => ['main'],
-        'bigwig' => ['q20', 'q0', 'createWigs', 'mq'],
-        'lumpy' => ['depth', 'caller']
-    );
-
-    foreach my $key (keys %expected_keys) {
-        unless (exists $resource_available->{$key}) {
-            print {STDERR} "\n **** error: Key '$key' does not exist in the resourse_available.json.\n";
-            exit;
-        }
-
-        foreach my $subkey (@{$expected_keys{$key}}) {
-            unless (exists $resource_available->{$key}->{$subkey}) {
-                print  {STDERR} "\n **** error: Subkey '$subkey' does not exist under key '$key' in the resourse_available.json.\n";
-                exit;
-            }
-        }
-    }
-
-    print "All expected keys and subkeys exist in the resourse_available.json.\n";
-}
 sub printHelp{
 
 print STDERR "
 ### This script runs ClinSV on a single node ###
 Version: $clinSvVersion
 Author: Andre E Minoche, James Bradley, Mark J Cowley
-
 
 usage: clinsv -p /path/to/project -i /path/to/input_bams/*.bam -ref /path/to/ref_data [options]
 
@@ -1510,13 +1417,10 @@ usage: clinsv -p /path/to/project -i /path/to/input_bams/*.bam -ref /path/to/ref
 -n Name stem for joint-called files (e.g joint vcf file) in case different sample grouping exists. 
    This is necessary if different sets of samples specified wtih -s are analysed within the same 
    project folder, E.g. a family trio and a set of single proband individuals.
--w short for 'web': In the IGV session file, stream the annotation tracks from a server. Convenient if you
+ -w short for 'web': In the IGV session file, stream the annotation tracks from a server. Convenient if you
     prefer to run ClinSV on an HPC (where you have a copy of the annotation bundle) and view results on your desktop 
--j Path to json file which specifies the resources to be used for each step [./clinsv/resource_available.json]
 -l Lumpy batch size. Number of sampels to be joint-called [15]. 
--ref Path to reference data dir [./refdata-b38 or ./refdata-b37]. This can take two colon separated values, see README.md
--hg19 Specify that input bams use hg19 chromosome nomenclature, use when using input bams that are
-	aligned to hg19 along with the reference data dir refdata-b37.
+-ref Path to reference data dir [./refdata-b38]. This can take two colon separated values, see README.md
 -eval Create the NA12878 validation report section [no].
 -h print this help
 
