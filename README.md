@@ -254,26 +254,26 @@ ClinSV works by creating shell scripts which aggregate multiple tools together. 
 
 ```
     "bigwig":{
-            "createWigs": "walltime=6:00:00,ncpus=16,mem=10GB",
-            "q0": "walltime=2:00:00,ncpus=1,mem=60GB,jobfs=100gb",
-            "q20": "walltime=2:00:00,ncpus=1,mem=60GB,jobfs=100gb",
-            "mq" : "walltime=5:00:00,ncpus=1,mem=60GB,jobfs=100gb"
+            "createWigs",
+            "q0",
+            "q20",
+            "mq"
     },
     "lumpy":{
-            "caller": "walltime=22:00:00,mem=60GB,ncpus=1,jobfs=300gb",
-            "depth": "walltime=8:00:00,ncpus=12,mem=30GB,jobfs=50G"
+            "caller",
+            "depth"
     },
     "cnvnator":{
-            "caller": "walltime=6:00:00,mem=30GB,ncpus=16,jobfs=300gb"
+            "caller"
     },
     "annotate":{
-            "main":"walltime=10:00:00,mem=10GB,ncpus=1,jobfs=20gb"
+            "main"
     },
     "prioritize":{
-            "main": "walltime=1:00:00,mem=3GB,ncpus=1,jobfs=20gb"
+            "main"
     },
     "qc":{
-            "main": "walltime=01:00:00,mem=2GB,ncpus=1,jobfs=20gb"
+            "main"
     }
 
 ```
