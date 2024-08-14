@@ -34,8 +34,8 @@ $S_ref_data="$S_clinsv_dir/refdata-b37";
 $projectDir_host='';
 $S_ref_data_host='';
 
-$resource_available_path="$S_clinsv_dir/resource_available.json";
-
+# $resource_available_path="$S_clinsv_dir/resource_available.json";
+$resource_available_path="";
 GetOptions (
 		    "p=s"  => \$projectDir,
 		    "r=s"  => \$runString,
@@ -57,11 +57,16 @@ GetOptions (
 if($help){  printHelp(); exit; }
 if($version){  print "$clinSvVersion\n"; exit; }
 
+if (length($resource_available_path) < 1){
+	# Use default resources
+	$resource_available = use_default_resources();
+}else{
+	# read in json of resources available 
+	$resource_available = read_json($resource_available_path);
+	# Checks that the resource_availble json contains keys for all required steps
+	check_resource_available_keys($resource_available);
+}
 
-$resource_available = read_json($resource_available_path);
-
-# Checks that the resource_availble json contains keys for all required steps
-check_resource_available_keys($resource_available);
 
 # If no project dir is given default to cwd
 if (length($projectDir)<1){
@@ -334,21 +339,43 @@ sub bigwig {
 		$job_resource = $resource_available->{$r_JobType}->{$r_JobSubType};
 		print "Using resource:".$job_resource." for job ".$r_JobType.":".$r_JobSubType."\n";
 		$$cJ{rJobResource}=$job_resource;
-		
+
 		open(OUT,">$$cJ{rShStem}.sh");	
 		print OUT "$r_head\n\n";	
 		print OUT "cd $r_OutDir/\n";
+
+		#Get max number of CPUs allocated
+		if ($job_resource =~ /ncpus=(\d+)/)
+		{
+			$max_ncpu = $1;
+		}else{
+			print STDERR "Unable to extract out max ncpu from $job_resource. Please ensure this is in the form of walltime=hh:mm:ss,ncpus=X,mem=YGB in the -j resource availble json\n";
+			exit (1);
+		}
+		
+		#
+		if ($max_ncpu <= 1){
+
+			print OUT "(( ncpus = `nproc` < 1 ?  `nproc` :1))\n";
+		}else{
+
+			#If the num of cpus available is greater than the allocated cpus, use the max allocated. Otherwise use the max cpus available from 'nproc' command. Accounting for 1 cpu used small contigs.
+			print OUT "(( ncpus = `nproc` <  $max_ncpu - 1 ? `nproc` : $max_ncpu - 1 ))\n";
+
+		}
 		
 		foreach $cT (("q0","q20","mq")){ # create bw of s1 for MQ>=0 and MQ>=20
+
 			if($cT eq "mq"){
-				print OUT "\n\nawk '\$2>=100000 {print \$1\":1-\"\$2}' $refFasta.chrom.sizes | xargs -P 15 -t -i{} perl $S_SV_scriptDir/bam2wigMQ.pl ";
+
+				print OUT "\n\nawk '\$2>=100000 {print \$1\":1-\"\$2}' $refFasta.chrom.sizes | xargs -P \${ncpus} -t -i{} perl $S_SV_scriptDir/bam2wigMQ.pl ";
 				print OUT "-s 1 -r \"{}\" -o $r_TmpDir/$cSample.$cT -f $refFasta -b $rAlnDir/$cSample.bam\n";
 				
 				print OUT "\n\nawk '\$2<100000 {print \$1\":1-\"\$2}' $refFasta.chrom.sizes | xargs -P 1 -t -i{} perl $S_SV_scriptDir/bam2wigMQ.pl ";
 				print OUT "-s 1 -r \"{}\" -o $r_TmpDir/$cSample.$cT.small_contigs -f $refFasta -b $rAlnDir/$cSample.bam -a \n";
 
 			}else{
-				print OUT "\n\nawk '\$2>=100000 {print \$1\":1-\"\$2}' $refFasta.chrom.sizes | xargs -P 15 -t -i{} perl $S_SV_scriptDir/bam2wig.pl ";
+				print OUT "\n\nawk '\$2>=100000 {print \$1\":1-\"\$2}' $refFasta.chrom.sizes | xargs -P \${ncpus} -t -i{} perl $S_SV_scriptDir/bam2wig.pl ";
 				print OUT "-s 1 -q $cT -r \"{}\" -o $r_TmpDir/$cSample.$cT -f $refFasta -b $rAlnDir/$cSample.bam\n";
 				
 				print OUT "\n\nawk '\$2<100000 {print \$1\":1-\"\$2}' $refFasta.chrom.sizes | xargs -P 1 -t -i{} perl $S_SV_scriptDir/bam2wig.pl ";
@@ -528,16 +555,28 @@ sub lumpy {
 		print "Using resource:".$job_resource." for job ".$r_JobType.":".$r_JobSubType."\n";
 		$$cJ{rJobResource}=$job_resource;
 
+		#Get max number of CPUs allocated
+		if ($job_resource =~ /ncpus=(\d+)/)
+		{
+			$max_ncpu = $1;
+		}else{
+			print STDERR "Unable to extract out max ncpu from $job_resource. Please ensure this is in the form of walltime=hh:mm:ss,ncpus=X,mem=YGB in the -j resource availble json\n";
+			exit (1);
+		}
+		
 # 		$$cJ{rQueueType}="express";
 		open(OUT,">$$cJ{rShStem}.sh");
 		$r_head.="export PERL5LIB=$S_clinsv_dir/perlib:\$PERL5LIB\n";
 		print OUT "$r_head\n";
+
+		#If the num of cpus available is greater than the allocated cpus, use the max allocated. Otherwise use the max cpus available from 'nproc' command. Accounting for 1 cpu used small contigs.
+		print OUT "(( ncpus = `nproc` <  $max_ncpu ? `nproc` : $max_ncpu ))\n";
 		
 		# parallel version with local copy of bw files
 		print OUT "perl -e 'while(<>){ if(/^#/){\$h.=\$_; next;} \@_=split(\"\\t\",\$_); \$c=\$_[0]; if(!exists(\$f{\$c})){ open(\$f{\$c},\">$r_TmpDir/in.\$c.vcf\"); print {\$f{\$c}} \$h; } \n";  
 		print OUT "print {\$f{\$c}} \$_; } foreach (values %f){close} ' $r_OutDir/$nameStemJoint.MQ$LP_MQ.$lumpOrSpeedPreProc$fileExt.vcf \n";			
 
-		print OUT "ls $r_TmpDir/in.*.vcf | xargs -P 12 -t -i{} perl $S_SV_scriptDir/add-depth-to-PE-SR-calls.pl {} $refFasta ".$refChrPf." $projectDir $S_SV_controlSRPE $S_SV_control_number_samples $S_control_bw_folder \n";
+		print OUT "ls $r_TmpDir/in.*.vcf | xargs -P \${ncpus} -t -i{} perl $S_SV_scriptDir/add-depth-to-PE-SR-calls.pl {} $refFasta ".$refChrPf." $projectDir $S_SV_controlSRPE $S_SV_control_number_samples $S_control_bw_folder \n";
 		print OUT "(grep \"#\" $r_TmpDir/in.".$chrPf."1.out; cat $r_TmpDir/in.*.out | grep -v \"#\" | sort -V -k1,1 -k2,2n ) > $r_OutDir/$nameStemJoint.MQ$LP_MQ.$lumpOrSpeedPreProc$fileExt.f1.vcf\n";	
 		
 
@@ -1475,18 +1514,47 @@ sub check_resource_available_keys {
     foreach my $key (keys %expected_keys) {
         unless (exists $resource_available->{$key}) {
             print {STDERR} "\n **** error: Key '$key' does not exist in the resourse_available.json.\n";
-            exit;
+            exit (1);
         }
 
         foreach my $subkey (@{$expected_keys{$key}}) {
             unless (exists $resource_available->{$key}->{$subkey}) {
                 print  {STDERR} "\n **** error: Subkey '$subkey' does not exist under key '$key' in the resourse_available.json.\n";
-                exit;
+                exit (1);
             }
         }
     }
 
     print "All expected keys and subkeys exist in the resourse_available.json.\n";
+}
+
+# Creates the resource_available hash to use default values
+sub use_default_resources {
+
+	my $resource_available = {};
+
+	# bigwig
+	$resource_available->{'bigwig'}->{'createWigs'} =  "walltime=6:00:00,ncpus=16,mem=10GB";
+	$resource_available->{'bigwig'}->{'q0'} = "walltime=2:00:00,ncpus=1,mem=60GB,jobfs=100gb";
+	$resource_available->{'bigwig'}->{'q20'} = "walltime=2:00:00,ncpus=1,mem=60GB,jobfs=100gb";
+	$resource_available->{'bigwig'}->{'mq'} = "walltime=5:00:00,ncpus=1,mem=60GB,jobfs=100gb";
+
+	# lumpy
+	$resource_available->{'lumpy'}->{'caller'} = "walltime=22:00:00,mem=60GB,ncpus=1,jobfs=300gb";
+	$resource_available->{'lumpy'}->{'depth'} = "walltime=8:00:00,ncpus=12,mem=30GB,jobfs=50G";
+
+	# cnvnator
+	$resource_available->{'cnvnator'}->{'caller'} = "walltime=6:00:00,mem=30GB,ncpus=16,jobfs=300gb";
+
+	# annotate
+	$resource_available->{'annotate'}->{'main'} = "walltime=10:00:00,mem=10GB,ncpus=1,jobfs=20gb";
+
+	# prioritize
+	$resource_available->{'prioritize'}->{'main'} = "walltime=1:00:00,mem=3GB,ncpus=1,jobfs=20gb";
+
+	# qc
+	$resource_available->{'qc'}->{'main'} = "walltime=01:00:00,mem=2GB,ncpus=1,jobfs=20gb";
+	return $resource_available;
 }
 sub printHelp{
 
@@ -1513,12 +1581,12 @@ usage: clinsv -p /path/to/project -i /path/to/input_bams/*.bam -ref /path/to/ref
    project folder, E.g. a family trio and a set of single proband individuals.
 -w short for 'web': In the IGV session file, stream the annotation tracks from a server. Convenient if you
     prefer to run ClinSV on an HPC (where you have a copy of the annotation bundle) and view results on your desktop 
--j Path to json file which specifies the resources to be used for each step [./clinsv/resource_available.json]
+-j Path to json file which specifies the resources to be used for each step
 -l Lumpy batch size. Number of sampels to be joint-called [15]. 
 -ref Path to reference data dir [./refdata-b38 or ./refdata-b37]. This can take two colon separated values, see README.md
 -hg19 Specify that input bams use hg19 chromosome nomenclature (e.g. short form '1,2,3..X,Y,MT'), use when using input bams that are
-aligned to hg19. Ensure sure with the reference data dir refdata-b37. Warning this is an unstable feature. Highly recommend to lift over input bams to
-GRCH37/GRCH8 with another tool like CrossMap, then use ClinSV with those ref genomes as usual.
+      aligned to hg19. Ensure to use with the reference data refdata-b37. Warning this is an unstable feature. Highly recommend to lift over input bams to
+      GRCh37/GRCh38 with another tool, then use ClinSV with those ref genomes.
 
 -eval Create the NA12878 validation report section [no].
 -h print this help
