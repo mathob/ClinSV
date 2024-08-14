@@ -1585,8 +1585,8 @@ usage: clinsv -p /path/to/project -i /path/to/input_bams/*.bam -ref /path/to/ref
 -l Lumpy batch size. Number of sampels to be joint-called [15]. 
 -ref Path to reference data dir [./refdata-b38 or ./refdata-b37]. This can take two colon separated values, see README.md
 -hg19 Specify that input bams use hg19 chromosome nomenclature (e.g. short form '1,2,3..X,Y,MT'), use when using input bams that are
-aligned to hg19. Ensure sure with the reference data dir refdata-b37. Warning this is an unstable feature. Highly recommend to lift over input bams to
-GRCH37/GRCH8 with another tool like CrossMap, then use ClinSV with those ref genomes as usual.
+      aligned to hg19. Ensure to use with the reference data refdata-b37. Warning this is an unstable feature. Highly recommend to lift over input bams to
+      GRCh37/GRCh38 with another tool, then use ClinSV with those ref genomes.
 
 -eval Create the NA12878 validation report section [no].
 -h print this help
