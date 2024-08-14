@@ -40,6 +40,7 @@ The easiest way to run ClinSV is via Docker. If you really want to compile from 
 - Bug fix #60: the coverage by chromosome view in the QC report is now outputed correctly.
 
 
+
 ## Download
 ClinSV requires a reference genome to run. Currently only GRCh38 and GRCh37 decoy (hs37d5) reference genomes are supported.
 
@@ -100,6 +101,7 @@ Current working directory
 ### Using Docker
 ```
 docker pull containerregistrypubliccb.azurecr.io/clinsv:v1.1.0
+
 
 refdata_path=$PWD/clinsv/
 input_path=$PWD
@@ -168,7 +170,6 @@ usage: clinsv -p /path/to/project -i /path/to/input_bams/*.bam -ref /path/to/ref
 -hg19 Specify that input bams use hg19 chromosome nomenclature (e.g. short form '1,2,3..X,Y,MT'), use when using input bams that are
       aligned to hg19. Ensure to use with the reference data refdata-b37. Warning this is an unstable feature. Highly recommend to lift over input bams to
       GRCh37/GRCh38 with another tool, then use ClinSV with those ref genomes.
-
 -eval Create the NA12878 validation report section [no].
 -h print this help
 
@@ -180,6 +181,80 @@ clinsv -r annotsv,prioritize -f
 When providing a [pedigree file](misc/sampleInfo.ped), the output will contain additional columns showing e.g. how often a variant was observed among affected and unaffected individuals. The pedigree file has to be named "sampleInfo.ped" and it has to be placed into the project folder.
 
 To mark variants affecting user defined candidate genes, a [gene list](misc/testGene.ids) list has to be placed into the project folder and named "testGene.ids". Gene names have to be as in ENSEMBL GRCh37.
+
+# ClinSV version 1.1.0
+ClinSV version 1.1.0 is currently under development and aims to make major usability improvements such as:
+ - Ability to use both GRCh37 and GRCh38 reference genomes 
+ - Support for hg19 style chromosome names for v37 or v38 reference genomes
+ - XML bug fixes to correct publicly hosted resource files
+
+Its development is kept track in this [issue](https://github.com/KCCG/ClinSV/issues/27#issue-1248950365) with most usability improvements implemented, however its is still buggy. Its docker container can be pulled from: 
+
+`docker pull containerregistrypubliccb.azurecr.io/clinsv:v1.1-dev`.
+
+Usage information for new features is currently shown in linked enhancement issues in the main development issues described previously.
+
+# ClinSV version 0.9
+Install and usage instructions for ClinSV v0.9
+## Download
+
+Download human genome reference data GRCh37 decoy (hs37d5):
+
+```
+wget https://clinsv.s3.ccia.org.au/clinsv_b37/refdata-b37_v0.9.tar
+
+# check md5sum: 921ecb9b9649563a16e3a47f25954951
+tar xf refdata-b37_v0.9.tar
+refdata_path=$PWD/clinsv/refdata-b37
+```
+
+Download a sample bam to test ClinSV:
+
+```
+wget https://clinsv.s3.ccia.org.au/clinsv_b37/NA12878_v0.9.bam
+wget https://clinsv.s3.ccia.org.au/clinsv_b37/NA12878_v0.9.bam.bai
+input_path=$PWD
+```
+
+The ClinSV software can be downloaded precompiled, as a Singularity image or through Docker. Please refer to the section below.
+
+
+## Run ClinSV
+
+### Using Singularity
+```
+wget https://clinsv.s3.ccia.org.au/clinsv_b37/clinsv.sif
+singularity run clinsv.sif \
+  -i "$input_path/*.bam" \
+  -ref $refdata_path \
+  -p $PWD/project_folder
+```
+
+### Using Docker
+```
+docker pull kccg/clinsv
+project_folder=$PWD/test_run
+docker run \
+-v $refdata_path:/app/ref-data \
+-v $project_folder:/app/project_folder \
+-v $input_path:/app/input \
+  kccg/clinsv -r all \
+-i "/app/input/*.bam" \
+-ref $refdata_path:/app/ref-data \
+-p $project_folder:/app/project_folder
+```
+
+### Linux Native
+
+Download precompiled ClinSV bundle for CentOS 6.8 x86_64
+
+```
+wget https://clinsv.s3.ccia.org.au/clinsv_b37/ClinSV_x86_64_v0.9.tar.gz
+tar zxf ClinSV_x86_64_v0.9.tar.gz
+clinsv_path=$PWD/clinsv
+export PATH=$clinsv_path/bin:$PATH
+clinsv -r all -p $PWD/project_folder -i "$input_path/*.bam" -ref $refdata_path
+```
 
 ### Compile dependencies from source
 see [INSTALL.md](INSTALL.md)
@@ -222,7 +297,7 @@ and the manuscript (see section citation)
 
 This IGV genome browser session file contains paths to supporting data files necessary for manual inspection of variants. There are tracks from static annotation files and those from your sample(s) of interest.
 
-If ClinSV was executed on a remote computer, like an HPC, then the file paths might not work on your Desktop. The default option of `-p /app/project_folder/` creates resource paths like this:
+If ClinSV was executed on a remote computer, like an HPC, or **within a docker container** then the file paths might not work on your Desktop. The default option of `-p /app/project_folder/` creates resource paths like this:
 
   <Resource path="/app/project_folder/test_run/igv/alignments/Sample/bw/Sample.q0.bw"/>
 
@@ -242,8 +317,6 @@ Once you copy the results to `/path/on/desktop`, the session file will now work.
 3. manually replace the paths in the XML file with a perl regex, eg `perl -pi -e 's|/app/project_folder/|/path/on/desktop/|g' $xml`
 
 4. mount the remote folder on your desktop (eg sshfs) using the same folder structure
-
-Consider specifying the `-w` option to allow the annotation tracks to be streamed in from our server. This is convenient if you don't want to have the full annotation bundle on your desktop.
 
 When the IGV application is open, the hyperlinks within the `sample.RARE_PASS_GENE.xlsx` file will open session files and to navigate to variants.
 
@@ -310,7 +383,7 @@ Installing the dependencies for ClinSV can be quite hard. It is recommended that
 9. In the running docker container run: `sh /app/clinsv_repo/Utils/insert_git_repo_into_docker.sh`. This will apply all the changes made in the `/app/clinsv_repo/` to the appropriate areas in the ClinSV docker container.
 10. Run ClinSV inside the container to test changes.
  
-## Commonly asked questions
+## Commonly asked questions (FAQ)
 1. Does ClinSV support long read data (Nanopore or PacBio)? No.
 2. Does ClinSV work on targeted short read NGS data (eg WES or panels)? No, it only works on WGS.
 3. Does ClinSV work on NovaSeq data? Yes it should be fine, but the control data was generated on HiSeq X & much of the strength of ClinSV is removing the noise that can happen when searching genome-wide.
