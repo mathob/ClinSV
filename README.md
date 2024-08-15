@@ -116,6 +116,7 @@ docker run -v $refdata_path:/app/ref-data \
 -w
 ```
 Expect this to take ~8 hours for a 30x WGS 80GB BAM file.
+
 Expect this to take ~2.5 hours with the subsampled 4.7GB BAM file.
 
 ### Using Singularity
@@ -191,67 +192,6 @@ Its development is kept track in this [issue](https://github.com/KCCG/ClinSV/iss
 `docker pull containerregistrypubliccb.azurecr.io/clinsv:v1.1-dev`.
 
 Usage information for new features is currently shown in linked enhancement issues in the main development issues described previously.
-
-# ClinSV version 0.9
-Install and usage instructions for ClinSV v0.9
-## Download
-
-Download human genome reference data GRCh37 decoy (hs37d5):
-
-```
-wget https://clinsv.s3.ccia.org.au/clinsv_b37/refdata-b37_v0.9.tar
-# check md5sum: 921ecb9b9649563a16e3a47f25954951
-tar xf refdata-b37_v0.9.tar
-refdata_path=$PWD/clinsv/refdata-b37
-```
-
-Download a sample bam to test ClinSV:
-
-```
-wget https://clinsv.s3.ccia.org.au/clinsv_b37/NA12878_v0.9.bam
-wget https://clinsv.s3.ccia.org.au/clinsv_b37/NA12878_v0.9.bam.bai
-input_path=$PWD
-```
-
-The ClinSV software can be downloaded precompiled, as a Singularity image or through Docker. Please refer to the section below.
-
-
-## Run ClinSV
-
-### Using Singularity
-```
-wget https://clinsv.s3.ccia.org.au/clinsv_b37/clinsv.sif
-singularity run clinsv.sif \
-  -i "$input_path/*.bam" \
-  -ref $refdata_path \
-  -p $PWD/project_folder
-```
-
-### Using Docker
-```
-docker pull kccg/clinsv
-project_folder=$PWD/test_run
-docker run \
--v $refdata_path:/app/ref-data \
--v $project_folder:/app/project_folder \
--v $input_path:/app/input \
-  kccg/clinsv -r all \
--i "/app/input/*.bam" \
--ref $refdata_path:/app/ref-data \
--p $project_folder:/app/project_folder
-```
-
-### Linux Native
-
-Download precompiled ClinSV bundle for CentOS 6.8 x86_64
-
-```
-wget https://clinsv.s3.ccia.org.au/clinsv_b37/ClinSV_x86_64_v0.9.tar.gz
-tar zxf ClinSV_x86_64_v0.9.tar.gz
-clinsv_path=$PWD/clinsv
-export PATH=$clinsv_path/bin:$PATH
-clinsv -r all -p $PWD/project_folder -i "$input_path/*.bam" -ref $refdata_path
-```
 
 ### Compile dependencies from source
 see [INSTALL.md](INSTALL.md)
