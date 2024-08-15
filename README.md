@@ -96,7 +96,7 @@ Current working directory
 **Extract the refdata-b3x tar files in the clinsv folder**
 
 ## Run ClinSV
-
+### Using Docker
 ```
 docker pull containerregistrypubliccb.azurecr.io/clinsv:v1.1.0
 
