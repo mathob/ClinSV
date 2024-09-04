@@ -316,7 +316,7 @@ Installing the dependencies for ClinSV can be quite hard. It is recommended that
 4. Why does my BAM not work? You must have one sample name 'SM' defined in the BAM header.
 5. Can I run hundreds of BAM files through ClinSV? We mostly tested ClinSV on trios or small numbers of WGS, so this probably won't work.
 6. Will you support CRAM? Yes, one day.
-7. Can I use hg19? No. v0.9 allows analysis against the hs37d5 ref genome (and the b37), where chrom names are 1, 2, ..., X, Y, MT. V1.0.x supports grch38, where chrom names are chr1,chr2,...,chrX,chrY.
+7. Can I use hg19? Yes. Support of hg19 style nomenclature (ex `1,2,3,4..X,Y,MT`) for input bams using the b37 reference genome using the `-hg19` command. Note this is an unstable feature. It is recommended to lift over your bam files first to the ref genome you would want to use (GRCh38 or GRCh37).
 8. Do you support alt/no alts? ClinSV should accept any of the versions of GRCh38, but will only analyse CNV or SV on the autosomes, and allosomes (X and Y).
 9. Will ClinSV work on model organisms? We've never tried. The annotation files and control data are important features of ClinSV, so it probably isn't the best choice.
 
