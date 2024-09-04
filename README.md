@@ -8,12 +8,12 @@ We developed ClinSV to overcome these challenges, enabling the use of WGS to ide
 
 ClinSV has the following features:
 
-* integration of three CNV signals: depth of coverage, split and spanning reads
-* extensive quality attributes for CNV and SV
+* Integration of three CNV signals: depth of coverage, split and spanning reads
+* Extensive quality attributes for CNV and SV
 * CNV and copy-number neutral SV are assigned High, Pass, Low quality tranches
-* variant segregation if a user-supplied PED file is supplied
-* gene and phenotype annotation of each SV
-* full, and focussed result tables for easy clinical interpretation
+* Variant segregation if a user-supplied PED file is supplied
+* Gene and phenotype annotation of each SV
+* Full, and focussed result tables for easy clinical interpretation
 * Quality Control report
 * Analytical validaiton report, if NA12878 is being analysed
 * Multiple population allele frequency measures to help identify rare variants 
