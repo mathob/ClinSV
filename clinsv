@@ -356,11 +356,11 @@ sub bigwig {
 		#
 		if ($max_ncpu <= 1){
 
-			print OUT "(( ncpus = `nproc` < 1 ?  `nproc` :1))\n";
+			print OUT "(( ncpus = `nproc --all` < 1 ?  `nproc --all` :1))\n";
 		}else{
 
 			#If the num of cpus available is greater than the allocated cpus, use the max allocated. Otherwise use the max cpus available from 'nproc' command. Accounting for 1 cpu used small contigs.
-			print OUT "(( ncpus = `nproc` <  $max_ncpu - 1 ? `nproc` : $max_ncpu - 1 ))\n";
+			print OUT "(( ncpus = `nproc --all` <  $max_ncpu - 1 ? `nproc --all` : $max_ncpu - 1 ))\n";
 
 		}
 		
