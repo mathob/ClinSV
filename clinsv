@@ -570,7 +570,7 @@ sub lumpy {
 		print OUT "$r_head\n";
 
 		#If the num of cpus available is greater than the allocated cpus, use the max allocated. Otherwise use the max cpus available from 'nproc' command. Accounting for 1 cpu used small contigs.
-		print OUT "(( ncpus = `nproc` <  $max_ncpu ? `nproc` : $max_ncpu ))\n";
+		print OUT "(( ncpus = `nproc --all` <  $max_ncpu ? `nproc --all` : $max_ncpu ))\n";
 		
 		# parallel version with local copy of bw files
 		print OUT "perl -e 'while(<>){ if(/^#/){\$h.=\$_; next;} \@_=split(\"\\t\",\$_); \$c=\$_[0]; if(!exists(\$f{\$c})){ open(\$f{\$c},\">$r_TmpDir/in.\$c.vcf\"); print {\$f{\$c}} \$h; } \n";  
