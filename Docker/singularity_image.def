@@ -1,0 +1,25 @@
+Bootstrap: docker
+From: containerregistrypubliccb.azurecr.io/clinsv:v1.1.0
+
+%files
+    # Overwrite container file with fixed host file:
+    ../clinsv /app/clinsv/bin/clinsv  
+    # ROOT lib and include files etc will be unpacked from this: 
+    root_v6.26.14.Linux-ubuntu20-x86_64-gcc9.4.tar.gz /
+
+%post
+    #fix execution permissions:
+    chmod o+x /app/clinsv/bigWigTools/bigWigToWig
+    chmod o+x /app/clinsv/bigWigTools/wigToBigWig
+
+    #supply ROOT library files so that cnvnator-multi will work:
+    tar -xzvf /root_v6.26.14.Linux-ubuntu20-x86_64-gcc9.4.tar.gz
+    rm /root_v6.26.14.Linux-ubuntu20-x86_64-gcc9.4.tar.gz
+    echo /opt/root/lib >> /etc/ld.so.conf
+    ldconfig
+
+%environment
+    export ROOTSYS=/opt/root
+    export PATH=$ROOTSYS/bin:$PATH
+    export LD_LIBRARY_PATH=$ROOTSYS/lib:$LD_LIBRARY_PATH
+    export PYTHONPATH=$ROOTSYS/lib:$PYTHONPATH
